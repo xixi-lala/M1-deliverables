@@ -1,0 +1,49 @@
+# 大体积数据文件
+*.csv
+*.tsv
+*.parquet
+*.jsonl
+*.xlsx
+*.zip
+*.gz
+*.tar
+data/
+OrginalData/
+
+# 例外保留：LLM增强宽表（35B，看板核心数据源）
+!lab10/batch_1000_features.csv
+
+# 数据库文件及临时锁文件
+*.db
+*.db.tmp
+*.db.wal
+*.sqlite
+*.sqlite3
+
+# Python虚拟环境
+.venv/
+venv/
+env/
+test_env/
+**/data_env/
+
+# Python缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE缓存与配置
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 敏感配置文件
+*.env
+
+# 模型文件
+*.pkl
+*.joblib
+*.h5
+*.onnx
