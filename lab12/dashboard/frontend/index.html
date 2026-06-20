@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大数据分析看板</title>
+    <!-- 国内稳定可用的ECharts CDN（字节跳动），替代无法访问的jsdelivr -->
+<script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, "Microsoft YaHei", sans-serif;
+            background: #0f0f23;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        header {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #1a1a3e, #2d1b69);
+        }
+        header h1 { font-size: 1.8rem; }
+        .chart-container {
+            width: 90%;
+            max-width: 800px;
+            height: 450px;
+            margin: 2rem auto;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📊 大数据分析看板</h1>
+        <p>Milestone 4 · 前后端分离架构</p>
+    </header>
+
+    <!-- 品类分布柱状图容器 -->
+    <div class="chart-container" id="categoryChart"></div>
+
+    <!-- 情感分布堆叠柱状图容器 -->
+    <div class="chart-container" id="sentimentChart"></div>
+
+    <script>
+        // 初始化ECharts实例
+        const categoryChart = echarts.init(document.getElementById('categoryChart'));
+
+        // 调用后端API获取品类分布数据
+        fetch('/api/category-distribution')
+            .then(res => {
+                if (!res.ok) throw new Error('API请求失败');
+                return res.json();
+            })
+            .then(data => {
+                // 配置图表选项
+                categoryChart.setOption({
+                    title: {
+                        text: '商品品类分布',
+                        left: 'center',
+                        textStyle: { color: '#e0e0e0' }
+                    },
+                    tooltip: { trigger: 'axis' },
+                    xAxis: {
+                        type: 'category',
+                        data: data.categories,
+                        axisLabel: { color: '#ccc', rotate: 30 }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        axisLabel: { color: '#ccc' }
+                    },
+                    series: [{
+                        type: 'bar',
+                        data: data.counts,
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#7c4dff' },
+                                { offset: 1, color: '#448aff' }
+                            ])
+                        }
+                    }]
+                });
+            })
+            .catch(err => {
+                console.error('数据加载失败:', err);
+                alert('图表数据加载失败，请检查后端服务是否正常运行');
+            });
+
+        // 响应窗口缩放
+        window.addEventListener('resize', () => categoryChart.resize());
+
+        // ------------------------------
+// 第二张图表：情感分布堆叠柱状图
+// ------------------------------
+// 初始化ECharts实例
+const sentimentChart = echarts.init(document.getElementById('sentimentChart'));
+
+// 调用后端API获取情感分布数据
+fetch('/api/sentiment-overview')
+    .then(res => {
+        if (!res.ok) throw new Error('情感数据API请求失败');
+        return res.json();
+    })
+    .then(data => {
+        // 提取品类列表和情感类型列表（自动识别正面/负面/中性）
+        const categories = data.data.map(item => item.category);
+        const sentimentTypes = Object.keys(data.data[0]).filter(key => key !== 'category');
+
+        // 为每种情感类型构建series对象（堆叠柱状图核心）
+        const series = sentimentTypes.map(sentiment => {
+            // 情感颜色映射：正面绿色、负面红色、中性灰色
+            const colorMap = {
+                '正面': '#00c853',
+                '负面': '#ff5252',
+                '中性': '#90a4ae'
+            };
+            
+            return {
+                name: sentiment,
+                type: 'bar',
+                stack: 'total', // 关键：设置为同一个值实现堆叠
+                data: data.data.map(item => item[sentiment]),
+                itemStyle: {
+                    color: colorMap[sentiment] || '#7c4dff'
+                }
+            };
+        });
+
+        // 配置图表选项
+        sentimentChart.setOption({
+            title: {
+                text: '各品类情感分布',
+                left: 'center',
+                textStyle: { color: '#e0e0e0' }
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' }
+            },
+            // 启用图例交互（点击可显示/隐藏对应情感类别）
+            legend: {
+                data: sentimentTypes,
+                top: 'bottom',
+                textStyle: { color: '#ccc' }
+            },
+            xAxis: {
+                type: 'category',
+                data: categories,
+                axisLabel: { color: '#ccc', rotate: 30 }
+            },
+            yAxis: {
+                type: 'value',
+                axisLabel: { color: '#ccc' }
+            },
+            series: series
+        });
+    })
+    .catch(err => {
+        console.error('情感数据加载失败:', err);
+        alert('情感分布图表数据加载失败，请检查后端服务');
+    });
+
+// 响应窗口缩放（两张图表都要监听）
+window.addEventListener('resize', () => {
+    categoryChart.resize();
+    sentimentChart.resize();
+});
+    </script>
+</body>
+</html>
